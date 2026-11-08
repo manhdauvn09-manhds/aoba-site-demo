@@ -1,0 +1,30 @@
+﻿# Repo website giả lập — thử plugin HIRAKU (C3) bằng Pull Request thật.
+# Bản xem trước: tạm dùng site demo 青葉市 trên cổng (https://hiraku.synthgora.com/demo-site), tên miền đã xác minh.
+# Repo thật của khách sẽ build + deploy bản xem trước của PR rồi đưa URL đó vào preview-url.
+name: HIRAKU accessibility
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  id-token: write          # OIDC: repo không giữ khóa nào
+  contents: read
+  security-events: write   # tải SARIF lên tab Code scanning
+jobs:
+  hiraku:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - id: hiraku
+        uses: manhdauvn09-manhds/hiraku-check@v1
+        with:
+          project: AOBA-1029-195258
+          preview-url: https://hiraku.synthgora.com/demo-site
+          site-dir: public                 # trang .html đổi trong PR → đường dẫn cần kiểm; không đổi gì thì kiểm "/"
+          gate: ${{ github.event_name == 'push' && 'report-only' || 'standard' }}   # nhánh chính chỉ báo + đặt mốc, PR mới chặn
+          ai: 'true'                        # AI góp ý (không chặn merge)
+          baseline: ${{ github.event_name == 'push' && 'true' || 'false' }}   # nhánh chính → đặt mốc
+      - if: always() && hashFiles('hiraku.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with: { sarif_file: hiraku.sarif, category: hiraku }
